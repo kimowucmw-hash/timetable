@@ -2,8 +2,17 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>課表與日程</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17171a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="課表">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<title>節次課表編輯器</title>
 <style>
 :root{
   --paper:#faf9f6; --panel:#ffffff; --ink:#1c1c1a; --ink2:#5b5a55; --ink3:#8b8a83;
@@ -28,17 +37,24 @@ html[data-theme="dark"]{
   --other-bg:#6a2440; --other-fg:#f2c3d5; --other-bd:#dd749c;
 }
 *{box-sizing:border-box}
+html{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--paper);color:var(--ink);
   font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
   font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
 .mono{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:1120px;margin:0 auto;padding:20px 16px 64px}
+.wrap{max-width:1120px;margin:0 auto;
+  padding:calc(20px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-right,0px))
+          calc(64px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px))}
+html.standalone .wrap{padding-top:calc(14px + env(safe-area-inset-top,0px))}
+html.standalone .hint,html.standalone footer{display:none}
+html.standalone .bar{position:sticky;top:0;z-index:5;background:var(--paper);
+  padding:8px 0;margin:0 0 10px;border-bottom:1px solid var(--line)}
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:4px}
 h1{font-size:20px;font-weight:600;margin:0;letter-spacing:.02em}
 .tag{font-size:12px;color:var(--ink3);border:1px solid var(--line);border-radius:99px;padding:1px 9px}
 .hint{color:var(--ink2);font-size:13px;margin:6px 0 16px}
 button,select,input,textarea{font:inherit;color:inherit}
-.btn{background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius);
+.btn{touch-action:manipulation;background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius);
   padding:6px 12px;font-size:13px;cursor:pointer;transition:background .12s,border-color .12s}
 .btn:hover{background:var(--accent-bg);border-color:var(--accent)}
 .btn:active{transform:translateY(1px)}
@@ -53,7 +69,9 @@ button,select,input,textarea{font:inherit;color:inherit}
 .chip{font-size:12px;padding:2px 10px;border-radius:99px;border:1px solid transparent;cursor:pointer;user-select:none}
 .chip[aria-pressed="false"]{opacity:.32}
 .scroller{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-.grid{display:grid;gap:3px;padding:10px;min-width:640px}
+.grid{display:grid;gap:3px;padding:10px;min-width:640px;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.grid.picking .cell{cursor:pointer}
 .hd{font-size:13px;font-weight:600;text-align:center;padding:4px 0;border-radius:6px;color:var(--ink2)}
 .hd.today{background:var(--accent-bg);color:var(--accent)}
 .rail{font-size:11px;color:var(--ink3);line-height:1.15;padding:3px 4px 0 2px;text-align:right;border-right:1px solid var(--line)}
@@ -98,7 +116,10 @@ dialog::backdrop{background:rgba(0,0,0,.42)}
 .ptable input.code{text-align:center}
 .xbtn{border:1px solid var(--line2);background:var(--panel);border-radius:6px;cursor:pointer;padding:2px 8px;color:var(--ink2)}
 .xbtn:hover{color:var(--danger);border-color:var(--danger)}
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);
+#tip{display:none;align-items:center;gap:10px;background:var(--accent-bg);border:1px solid var(--line2);
+  border-radius:var(--radius);padding:8px 12px;font-size:13px;margin-bottom:12px;color:var(--ink2)}
+#tip.on{display:flex}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);
   padding:8px 16px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
 #toast.on{opacity:.95}
 footer{margin-top:22px;font-size:12px;color:var(--ink3)}
@@ -117,10 +138,10 @@ footer{margin-top:22px;font-size:12px;color:var(--ink3)}
 <body>
 <div class="wrap">
 <header>
-  <h1>課表與排程</h1>
-  <span class="tag" id="presetTag">節次</span>
+  <h1>節次課表編輯器</h1>
+  <span class="tag" id="presetTag">師大節次</span>
 </header>
-<p class="hint">點空格新增，往下拖曳可跨節次；點方塊可編輯。所有內容存在這台裝置的瀏覽器裡。</p>
+<p class="hint">點空格新增，往下拖曳可跨節次；點方塊可編輯。所有內容存在這台裝置的瀏覽器裡，不會上傳。</p>
 
 <div class="bar">
   <button class="btn primary" id="btnAdd">新增時段</button>
@@ -129,15 +150,17 @@ footer{margin-top:22px;font-size:12px;color:var(--ink3)}
   <button class="btn" id="btnJson">匯出檔案</button>
   <button class="btn" id="btnImport">匯入檔案</button>
   <button class="btn" id="btnPrint">列印／存 PDF</button>
+  <button class="btn" id="btnInstall" style="display:none">安裝到主畫面</button>
   <span class="sp"></span>
   <button class="btn" id="btnTheme" aria-label="切換外觀">外觀：自動</button>
 </div>
 
+<div id="tip"><span id="tipText"></span><button class="btn" id="tipClose" style="margin-left:auto">知道了</button></div>
 <div class="legend" id="legend"></div>
 <div class="scroller"><div class="grid" id="grid"></div></div>
 <div class="stats" id="stats"></div>
 
-<footer>資料存在瀏覽器的 localStorage。換裝置或清快取前，先「匯出檔案」備份。</footer>
+<footer>資料存在瀏覽器的 localStorage。換裝置或清快取前，記得先「匯出檔案」備份。</footer>
 </div>
 
 <dialog id="dlgEdit">
@@ -475,6 +498,58 @@ document.addEventListener("mouseup",function(){
   dragFrom=dragTo=null;paintSel();
   openEdit(null,day,a,b);
 });
+var touchTimer=null,touchStart=null,touchDrag=false;
+function cellFromPoint(x,y){
+  var el=null;
+  try{el=document.elementFromPoint(x,y);}catch(e){}
+  return cellAt(el);
+}
+grid.addEventListener("touchstart",function(ev){
+  if(!ev.touches||ev.touches.length!==1)return;
+  var c=cellAt(ev.target);
+  if(!c)return;
+  var day=+c.dataset.day,row=+c.dataset.row;
+  if(overlaps(day,row,row,null))return;
+  var t=ev.touches[0];
+  touchStart={x:t.clientX,y:t.clientY};
+  touchDrag=false;
+  clearTimeout(touchTimer);
+  touchTimer=setTimeout(function(){
+    touchDrag=true;dragging=false;dragDay=day;dragFrom=dragTo=row;
+    grid.classList.add("picking");paintSel();
+    if(navigator.vibrate){try{navigator.vibrate(12);}catch(e){}}
+  },340);
+},{passive:true});
+grid.addEventListener("touchmove",function(ev){
+  if(!touchStart||!ev.touches||!ev.touches.length)return;
+  var t=ev.touches[0];
+  if(!touchDrag){
+    if(Math.abs(t.clientX-touchStart.x)>8||Math.abs(t.clientY-touchStart.y)>8){
+      clearTimeout(touchTimer);touchStart=null;
+    }
+    return;
+  }
+  if(ev.cancelable)ev.preventDefault();
+  var c=cellFromPoint(t.clientX,t.clientY);
+  if(c&&+c.dataset.day===dragDay)dragTo=clampRange(dragDay,dragFrom,+c.dataset.row);
+  paintSel();
+},{passive:false});
+function endTouch(ev){
+  clearTimeout(touchTimer);
+  grid.classList.remove("picking");
+  if(!touchDrag){touchStart=null;return;}
+  if(ev.cancelable)ev.preventDefault();
+  var a=Math.min(dragFrom,dragTo),b=Math.max(dragFrom,dragTo),day=dragDay;
+  dragFrom=dragTo=null;paintSel();
+  touchDrag=false;touchStart=null;dragging=false;
+  openEdit(null,day,a,b);
+}
+grid.addEventListener("touchend",endTouch,{passive:false});
+grid.addEventListener("touchcancel",function(){
+  clearTimeout(touchTimer);grid.classList.remove("picking");
+  touchDrag=false;touchStart=null;dragFrom=dragTo=null;paintSel();
+});
+grid.addEventListener("contextmenu",function(ev){if(touchDrag)ev.preventDefault();});
 grid.addEventListener("click",function(ev){
   var t=ev.target;
   while(t&&t!==grid){
@@ -753,15 +828,53 @@ document.getElementById("presetTag").textContent=
 renderLegend();
 render();
 setInterval(function(){
-  if(dragging)return;
+  if(dragging||touchDrag)return;
   if(document.getElementById("dlgEdit").hasAttribute("open"))return;
   if(document.getElementById("dlgSet").hasAttribute("open"))return;
   render();
 },60000);
 
+function isStandalone(){
+  return (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||
+         window.navigator.standalone===true;
+}
+function memo(k,v){
+  try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){}
+  return null;
+}
+if(isStandalone())document.documentElement.classList.add("standalone");
+var installEvt=null,btnInstall=document.getElementById("btnInstall");
+window.addEventListener("beforeinstallprompt",function(e){
+  e.preventDefault();installEvt=e;btnInstall.style.display="";
+});
+btnInstall.addEventListener("click",function(){
+  if(!installEvt)return;
+  installEvt.prompt();
+  var c=installEvt.userChoice;
+  installEvt=null;btnInstall.style.display="none";
+  if(c&&c.then)c.then(function(){});
+});
+window.addEventListener("appinstalled",function(){btnInstall.style.display="none";installEvt=null;});
+(function(){
+  var ua=navigator.userAgent||"";
+  var ios=/iPad|iPhone|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1);
+  if(!ios||isStandalone()||memo("tt-tip")==="1")return;
+  document.getElementById("tipText").textContent="想當 app 用：點下方分享鍵 → 加入主畫面，開啟後就沒有網址列了。";
+  document.getElementById("tip").classList.add("on");
+})();
+document.getElementById("tipClose").addEventListener("click",function(){
+  document.getElementById("tip").classList.remove("on");memo("tt-tip","1");
+});
+if("serviceWorker" in navigator&&location.protocol!=="file:"){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
 window.__tt={get state(){return S;},set state(v){S=v;},render:render,buildICS:buildICS,
   valid:valid,normalize:normalize,freshState:freshState,overlaps:overlaps,
-  firstDate:firstDate,esc:esc,fold:fold,openEdit:openEdit,periods:periods,sampleBlocks:sampleBlocks};
+  firstDate:firstDate,esc:esc,fold:fold,openEdit:openEdit,periods:periods,sampleBlocks:sampleBlocks,
+  isStandalone:isStandalone,clampRange:clampRange,
+  get touchDrag(){return touchDrag;},endTouch:endTouch};
 })();
 </script>
 </body>
