@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>節次課表編輯器</title>
+<title>課表與日程</title>
 <style>
 :root{
   --paper:#faf9f6; --panel:#ffffff; --ink:#1c1c1a; --ink2:#5b5a55; --ink3:#8b8a83;
@@ -117,10 +117,10 @@ footer{margin-top:22px;font-size:12px;color:var(--ink3)}
 <body>
 <div class="wrap">
 <header>
-  <h1>節次課表編輯器</h1>
-  <span class="tag" id="presetTag">師大節次</span>
+  <h1>課表與排程</h1>
+  <span class="tag" id="presetTag">節次</span>
 </header>
-<p class="hint">點空格新增，往下拖曳可跨節次；點方塊可編輯。所有內容存在這台裝置的瀏覽器裡，不會上傳。</p>
+<p class="hint">點空格新增，往下拖曳可跨節次；點方塊可編輯。所有內容存在這台裝置的瀏覽器裡。</p>
 
 <div class="bar">
   <button class="btn primary" id="btnAdd">新增時段</button>
@@ -137,7 +137,7 @@ footer{margin-top:22px;font-size:12px;color:var(--ink3)}
 <div class="scroller"><div class="grid" id="grid"></div></div>
 <div class="stats" id="stats"></div>
 
-<footer>資料存在瀏覽器的 localStorage。換裝置或清快取前，記得先「匯出檔案」備份。</footer>
+<footer>資料存在瀏覽器的 localStorage。換裝置或清快取前，先「匯出檔案」備份。</footer>
 </div>
 
 <dialog id="dlgEdit">
